@@ -33,8 +33,11 @@ class InvestmentMDP:
     def transition(self, wealth: float, time: int, weights: np.ndarray,
                    returns_sample: np.ndarray, previous_weights: np.ndarray = None) -> float:
         """
-        Calcule la richesse à t+1 en incluant les frais, l'inflation et les pénalités de liquidité.
+        Calcule la richesse à t+1 en incluant les frais, l'épargne et les pénalités de liquidité.
         """
+        # Ajout de l'épargne annuelle
+        wealth += self.i_cfg.monthly_savings * 12
+        
         cash_flow = self.i_cfg.life_events.get(time, 0.0)
         
         # Gestion de la liquidité et pénalité de vente forcée

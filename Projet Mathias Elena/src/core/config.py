@@ -38,6 +38,7 @@ class InvestmentConfig:
     """Configuration des paramètres d'investissement."""
     initial_wealth: float = 200.0  # 200k €
     horizon: int = 30
+    monthly_savings: float = 0.0 # Épargne mensuelle en k€
     rebalancing_frequency: str = "annual"
     inflation_rate: float = 0.02
     target_wealth: float = 600.0  # Objectif de richesse nominale

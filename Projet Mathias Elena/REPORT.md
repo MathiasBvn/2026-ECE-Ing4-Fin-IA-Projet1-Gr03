@@ -28,7 +28,15 @@ Le modèle intègre désormais 6 classes d'actifs avec des caractéristiques de 
 3.  **Supériorité du RL sur le Risque** : L'agent RL obtient le meilleur **Sharpe Ratio (1.19)**. Il a appris à naviguer autour des événements de vie en stabilisant son allocation pour minimiser la volatilité, malgré un univers d'actifs complexe.
 4.  **Robustesse de OR-Tools** : L'approche moyenne-variance déterministe reste très compétitive pour maximiser la richesse brute.
 
-## 3. Visualisation et Design Professionnel
+## 3. Interface Interactive (Streamlit)
+
+Le projet dispose désormais d'une application web interactive permettant une personnalisation totale :
+- **Configuration Dynamique** : Ajustement du capital, de l'épargne mensuelle et de l'horizon de placement.
+- **Plan de Vie Éditable** : Ajout/Suppression d'événements de vie (Mariage, Immobilier, Études) via un tableau interactif.
+- **Visualisation Interactive (Plotly)** : Exploration des trajectoires de richesse et des allocations par survol de souris.
+- **Comparaison en Temps Réel** : Analyse instantanée des performances entre la Programmation Dynamique et l'Optimisation Linéaire.
+
+## 4. Visualisation et Design Professionnel
 
 Le projet intègre désormais une charte graphique de type "Rapport d'Investissement" :
 - **Palette Sémantique** : Couleurs fixes pour chaque actif (Bleu pour Actions, Vert pour Obligations, Or pour Gold, etc.).

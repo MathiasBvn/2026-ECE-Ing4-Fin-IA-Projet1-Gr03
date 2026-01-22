@@ -1,6 +1,54 @@
-# 2026 - ECE - Ing4 - Fin - IA Exploratoire et Symbolique - Groupe 3
+# 💰 Wealth Planner AI : Optimisation d'Investissement Multi-Périodes
 
-Projet pédagogique d'exploration des approches d'intelligence artificielle symbolique et exploratoire pour les étudiants de l'ECE.
+Projet d'Expertise en Développement Quantitatif et Recherche Opérationnelle (ECE 2026).
+
+## 🚀 Lancement Rapide
+
+### 1. Installation
+```powershell
+# Création de l'environnement virtuel
+py -m venv venv
+
+# Activation (PowerShell)
+.\venv\Scripts\Activate.ps1
+
+# Installation des dépendances
+pip install -r "Projet Mathias Elena/requirements.txt"
+```
+
+### 2. Lancer l'Interface Interactive (Streamlit)
+```powershell
+cd "Projet Mathias Elena"
+..\venv\Scripts\streamlit run dashboard.py
+```
+*Note : Si vous utilisez CMD au lieu de PowerShell, remplacez `;` par `&&`.*
+
+### 3. Lancer le Benchmark complet (CLI)
+```powershell
+python "Projet Mathias Elena/main.py"
+```
+
+---
+
+## 🧠 Présentation du Projet
+Ce projet résout le problème complexe de l'allocation d'actifs multi-périodes en intégrant des événements de vie (achat immobilier, études, etc.) et des contraintes de liquidité réelles.
+
+### Approches Comparées :
+1.  **Programmation Dynamique (DP)** : Induction arrière de Bellman sur grille de richesse.
+2.  **Optimisation Linéaire (OR-Tools)** : Approche moyenne-variance rapide sous contraintes.
+3.  **Reinforcement Learning (RL)** : Agent PPO (Stable-Baselines3) apprenant dans un environnement Gymnasium.
+
+### Actifs Supportés :
+- Actions, Obligations, Cash, Or, Crypto (BTC), SCPI (Immobilier).
+- Gestion des frais de transaction spécifiques et pénalités de liquidité.
+
+---
+
+## 📊 Visualisations Professionnelles
+L'application génère des rapports visuels de haute qualité :
+- **Stacked Area Charts** pour l'évolution de l'allocation.
+- **Convergence de Richesse** avec intervalles de confiance.
+- **Violin Plots** pour la distribution du patrimoine final.
 
 ---
 
