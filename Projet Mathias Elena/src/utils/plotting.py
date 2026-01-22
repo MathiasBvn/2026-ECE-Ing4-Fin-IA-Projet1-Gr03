@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('Agg') # Backend non-interactif
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -29,13 +30,34 @@ def setup_style():
         'figure.titlesize': 18
     })
 
-def plot_wealth_convergence(df: pd.DataFrame, title: str, save_path: str = None, 
+def plot_wealth_convergence(df: pd.DataFrame, title: str, save_path: str = None,
                             target_wealth: float = None, inflation_rate: float = 0.0,
                             life_events: Dict[int, float] = None,
                             event_names: Dict[int, str] = None):
     """Affiche la convergence de la richesse avec événements et liquidité."""
     setup_style()
     plt.figure(figsize=(14, 8))
+    
+    # Vérification de robustesse : s'assurer que les données de richesse sont correctement formatées
+    # Si le DataFrame contient une seule trajectoire, s'assurer que les calculs de statistiques fonctionnent
+    if 'wealth' not in df.columns:
+        print(f"  Erreur : Colonne 'wealth' non trouvée dans le DataFrame")
+        plt.close()
+        return
+    
+    # Vérification de dimension pour gérer le cas DP avec une seule trajectoire
+    # Si les données de richesse sont en 1D (cas DP unique), on les transforme en 2D
+    wealth_data = df['wealth'].values
+    if wealth_data.ndim == 1:
+        # Cas d'une seule trajectoire : on crée un DataFrame avec une seule simulation
+        # Les calculs de mean/std fonctionneront correctement
+        pass  # Le groupby pandas gère déjà ce cas correctement
+    
+    # Vérification supplémentaire : s'assurer qu'il y a plusieurs trajectoires pour les quantiles
+    # Si une seule trajectoire, les quantiles p5 et p95 seront égaux à la moyenne
+    n_trajectories = df['trajectory'].nunique() if 'trajectory' in df.columns else 1
+    if n_trajectories == 1:
+        print(f"  Note : Une seule trajectoire détectée - les intervalles de confiance ne sont pas significatifs")
     
     # Calcul des statistiques
     grouped = df.groupby('time')['wealth']
@@ -120,20 +142,113 @@ def plot_wealth_distribution(all_results_df: pd.DataFrame, horizon: int, save_pa
         plt.savefig(save_path, dpi=300)
     plt.close()
 
-def plot_results_professional(all_results_df: pd.DataFrame, horizon: int, 
-                                output_dir: str = "output", target_wealth: float = None, 
+def plot_allocation_professional(allocation_df: pd.DataFrame, output_dir: str,
+                                  filename: str = "alloc_prof.png"):
+    """
+    Génère un graphique professionnel de l'allocation d'actifs.
+    
+    Args:
+        allocation_df: DataFrame contenant les colonnes d'allocation (alloc_*)
+        output_dir: Répertoire de sortie
+        filename: Nom du fichier de sortie
+    """
+    import os
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    setup_style()
+    
+    # Liste fixe d'actifs dans l'ordre défini dans config.py
+    labels = ['Actions', 'Obligations', 'Cash', 'Or', 'Crypto', 'SCPI']
+    
+    # Colonnes d'allocation dans le bon ordre
+    alloc_cols = [f'alloc_{label.lower()}' for label in labels]
+    
+    # Vérifier que toutes les colonnes existent
+    available_cols = [c for c in alloc_cols if c in allocation_df.columns]
+    
+    if not available_cols:
+        print(f"  Avertissement : Aucune colonne d'allocation trouvée dans le DataFrame")
+        return
+    
+    # Vérification de sécurité : tronquer labels et colors si moins de colonnes disponibles
+    num_assets = len(available_cols)
+    if num_assets < len(labels):
+        labels = labels[:num_assets]
+    
+    # Calculer l'allocation moyenne par temps
+    avg_alloc = allocation_df.groupby('time')[available_cols].mean()
+    avg_alloc = avg_alloc.clip(lower=0)
+    avg_alloc = avg_alloc.div(avg_alloc.sum(axis=1), axis=0)
+    
+    # Couleurs correspondantes aux actifs (6 couleurs distinctes)
+    colors = [ASSET_COLORS.get(label, "#000000") for label in labels]
+    
+    # Création du graphique
+    fig, ax = plt.subplots(figsize=(13, 7))
+    avg_alloc.plot(kind='area', stacked=True, ax=ax, alpha=0.85, color=colors)
+    
+    plt.title("Évolution de l'Allocation d'Actifs", pad=20)
+    plt.xlabel("Temps (Années)")
+    plt.ylabel("Allocation (%)")
+    plt.ylim(0, 1)
+    
+    # Création manuelle des rectangles pour la légende pour être sûr des couleurs
+    legend_handles = []
+    for label, color in zip(labels, colors):
+        legend_handles.append(mpatches.Patch(color=color, label=label))
+    plt.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(1, 1), title="Actifs")
+    
+    plt.tight_layout()
+    
+    # Sauvegarde
+    save_path = os.path.join(output_dir, filename)
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+    print(f"  Graphique d'allocation sauvegardé : {filename}")
+
+
+def plot_results_professional(all_results_df: pd.DataFrame, horizon: int,
+                                output_dir: str = "output", target_wealth: float = None,
                                 inflation_rate: float = 0.0, life_events: Dict[int, float] = None,
                                 event_names: Dict[int, str] = None):
     """Génère l'ensemble des graphiques professionnels pour le rapport."""
     import os
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-        
+    
+    # Dictionnaire pour stocker les résultats par solveur
+    results = {}
+    
     for solver_name in all_results_df['solver'].unique():
         solver_df = all_results_df[all_results_df['solver'] == solver_name]
-        plot_allocation_stacked(solver_df, f"Stratégie d'Allocation : {solver_name}", 
-                                f"{output_dir}/{solver_name.lower()}_alloc_prof.png")
-        plot_wealth_convergence(solver_df, f"Convergence de la Richesse : {solver_name}", 
+        results[solver_name] = solver_df
+        
+        # --- BLOC DE FORÇAGE POUR L'ALLOCATION ---
+        print(f"\nGénération du graphique d'allocation pour {solver_name}...")
+        
+        # Vérifier si les colonnes d'allocation existent
+        alloc_cols = [c for c in solver_df.columns if c.startswith('alloc_')]
+        
+        if alloc_cols:
+            # On construit le nom de fichier dynamiquement
+            filename = f"{solver_name.lower().replace(' ', '_')}_alloc_prof.png"
+            
+            try:
+                plot_allocation_professional(
+                    solver_df,
+                    output_dir,
+                    filename=filename
+                )
+                print(f"  -> Succès : {filename}")
+            except Exception as e:
+                print(f"  -> Erreur lors du plot allocation {solver_name}: {e}")
+        else:
+            print(f"  Attention : Pas d'historique d'allocation trouvé pour {solver_name}")
+        # --- FIN DU BLOC DE FORÇAGE ---
+        
+        # Graphique de richesse
+        plot_wealth_convergence(solver_df, f"Convergence de la Richesse : {solver_name}",
                                 f"{output_dir}/{solver_name.lower()}_wealth_prof.png",
                                 target_wealth=target_wealth, inflation_rate=inflation_rate,
                                 life_events=life_events, event_names=event_names)
@@ -158,8 +273,13 @@ def plot_risk_reward_comparison(all_results_df: pd.DataFrame, horizon: int,
     stats = []
     for solver_name in final_wealth['solver'].unique():
         solver_data = final_wealth[final_wealth['solver'] == solver_name]['wealth']
-        mean_wealth = solver_data.mean()
-        std_wealth = solver_data.std()
+        wealth = np.array(solver_data)
+        # Gestion robuste des dimensions (Cas DP vs Monte Carlo)
+        if wealth.ndim == 1:
+            # Si 1D (ex: DP), on transforme en (1, T) pour simuler 1 scénario
+            wealth = wealth.reshape(1, -1)
+        mean_wealth = wealth.mean(axis=0).mean()
+        std_wealth = wealth.std(axis=0).mean()
         stats.append({
             'solver': solver_name,
             'mean': mean_wealth,
